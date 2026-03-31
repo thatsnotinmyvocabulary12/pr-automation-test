@@ -2,7 +2,8 @@
 environment: default
 
 admin_openvpn_clients:
-  - alok.mohan
-  - rakesh.pelluri
-  - roshan.mathews
-  - likith.k
+  # - shubham.maloo
+  # - madhan.d
+    - nishanth.ks
+    - mugesh.pradeep
+
