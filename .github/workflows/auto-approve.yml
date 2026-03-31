@@ -38,6 +38,33 @@ jobs:
             exit 1
           fi
 
+      - name: 🤖 Auto-Comment Old VPN Users
+        run: |
+          # 1. Fetch the main branch to see what the file looked like before this PR was opened
+          git fetch origin main
+
+          # 2. Extract ONLY the names that were ACTIVE in the main branch specifically under openvpn_clients
+          # This awk command isolates the openvpn_clients list and ignores admin_openvpn_clients, etc.
+          OLD_ACTIVE=$(git show origin/main:infrastructure/group_vars/all | awk '/^openvpn_clients:/{flag=1} /^#?[a-zA-Z]/{if ($1 != "openvpn_clients:") flag=0} flag && /^[[:space:]]*-[[:space:]]/{print $2}')
+
+          # 3. Automatically comment those old users out in the current PR file
+          for user in $OLD_ACTIVE; do
+            # Replaces "- username" with "#  - username"
+            sed -i "s/^[[:space:]]*-[[:space:]]*$user/#  - $user/g" infrastructure/group_vars/all
+          done
+
+          # 4. If the bot made changes, commit and push them back to the developer's PR!
+          if [[ -n $(git status -s) ]]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add infrastructure/group_vars/all
+            git commit -m "🤖 Auto-commented previous VPN users"
+            git push
+            echo "✅ Auto-commented old users and updated the PR!"
+          else
+            echo "✅ No old users needed to be commented out."
+          fi
+
       - name: Auto-Approve PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
