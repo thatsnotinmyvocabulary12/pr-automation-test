@@ -40,12 +40,12 @@ jobs:
 
       - name: Auto-Approve PR
         env:
-          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr review --approve "${{ github.event.pull_request.html_url }}" -b "🤖 Strict regex and duplicate checks passed. Auto-approving!"
 
       - name: Auto-Merge PR
         env:
-          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"
