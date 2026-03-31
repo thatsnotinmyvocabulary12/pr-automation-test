@@ -1,0 +1,51 @@
+name: Strict Check and Auto-Approve
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/group_vars/all'
+
+jobs:
+  validate-and-approve:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Duplicate Entries
+        run: |
+          DUPLICATES=$(grep "^[[:space:]]*-[[:space:]]" infrastructure/group_vars/all | grep -v "#" | sort | uniq -d)
+          if [ -n "$DUPLICATES" ]; then
+            echo "❌ Error: Duplicate entries found!"
+            echo "$DUPLICATES"
+            exit 1
+          fi
+
+      - name: Enforce Strict Regex Formatting
+        run: |
+          INVALID=$(grep "^[[:space:]]*-[[:space:]]" infrastructure/group_vars/all \
+            | grep -v "#" \
+            | grep -v "ssh-rsa" \
+            | grep -v "ssh-ed25519" \
+            | grep -vE "^[[:space:]]*-[[:space:]]+[a-z0-9.]+$" || true)
+          if [ -n "$INVALID" ]; then
+            echo "❌ Error: Invalid format found! Usernames must be lowercase and only contain letters, numbers, or dots."
+            echo "$INVALID"
+            exit 1
+          fi
+
+      - name: Auto-Approve PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review --approve "${{ github.event.pull_request.html_url }}" -b "🤖 Strict regex and duplicate checks passed. Auto-approving!"
+
+      - name: Auto-Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"
